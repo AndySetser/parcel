@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parcel — Buy and sell without the guesswork</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3F1E7; --paper-card:#FFFFFF; --ink:#2B2A22; --ink-soft:#5C5A4B;
+    --mustard:#E3A23C; --mustard-soft:#F3D9A8; --teal:#22615A; --teal-soft:#CFE0DC;
+    --clay:#C1523F; --clay-soft:#F0D2CB; --line:#E3DFCF;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Work Sans',sans-serif;overflow-x:hidden;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-0.01em;margin:0;}
+  .mono{font-family:'Space Mono',monospace;}
+  a{color:inherit;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 32px;position:relative;z-index:2;}
+  @media (max-width:640px){.wrap{padding:0 20px;}}
+  .blob{position:absolute;border-radius:58% 42% 65% 35% / 45% 55% 45% 55%;filter:blur(2px);z-index:1;opacity:.5;pointer-events:none;}
+  .blob-mustard{background:var(--mustard-soft);}
+  .blob-teal{background:var(--teal-soft);}
+
+  .btn{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;padding:13px 24px;border:none;border-radius:100px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;display:inline-block;text-decoration:none;}
+  .btn-mustard{background:var(--mustard);color:var(--ink);box-shadow:0 6px 18px rgba(227,162,60,0.35);}
+  .btn-mustard:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(227,162,60,0.45);}
+  .btn-teal{background:var(--teal);color:#fff;box-shadow:0 6px 18px rgba(34,97,90,0.3);}
+  .btn-teal:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(34,97,90,0.4);}
+  .btn-outline{background:transparent;border:1.5px solid var(--ink);color:var(--ink);box-shadow:none;}
+  .btn-outline:hover{background:var(--ink);color:var(--paper);}
+  .btn-sm{padding:9px 18px;font-size:13px;}
+
+  nav{position:sticky;top:0;z-index:50;background:rgba(243,241,231,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:72px;}
+  .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;cursor:pointer;}
+  .logo span{color:var(--teal);}
+  .nav-links{display:flex;gap:26px;font-size:14px;font-weight:500;color:var(--ink-soft);}
+  .nav-links a{text-decoration:none;cursor:pointer;padding-bottom:3px;border-bottom:2px solid transparent;}
+  .nav-links a:hover{color:var(--ink);}
+  .nav-links a.active{color:var(--ink);border-bottom-color:var(--mustard);}
+  @media (max-width:900px){.nav-links{display:none;}}
+
+  #app{min-height:60vh;}
+  section{padding:72px 0;position:relative;}
+  .section-head{margin-bottom:40px;max-width:56ch;}
+  .section-head .tag{font-family:'Space Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);background:var(--teal-soft);padding:5px 13px;border-radius:100px;display:inline-block;margin-bottom:16px;}
+  .section-head h1, .section-head h2{font-size:clamp(26px,3.4vw,38px);}
+  .section-head p{color:var(--ink-soft);font-size:15.5px;margin-top:10px;line-height:1.6;}
+  .preview-flag{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-family:'Space Mono',monospace;font-size:11.5px;color:var(--ink-soft);}
+  .preview-flag::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--clay);display:inline-block;}
+  .crumb{font-family:'Space Mono',monospace;font-size:12px;color:var(--ink-soft);margin-bottom:20px;display:inline-block;text-decoration:none;cursor:pointer;}
+  .crumb:hover{color:var(--teal);}
+
+  /* hero (home) */
+  header.hero{padding:80px 0 0;position:relative;}
+  .blob-hero-1{width:420px;height:420px;top:-140px;right:-120px;}
+  .blob-hero-2{width:260px;height:260px;bottom:20px;left:-90px;}
+  .hero-inner{max-width:640px;}
+  .eyebrow{font-family:'Space Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);background:var(--teal-soft);display:inline-block;padding:6px 14px;border-radius:100px;margin-bottom:22px;}
+  .hero h1{font-size:clamp(34px,5vw,54px);line-height:1.1;}
+  .hero h1 em{font-style:normal;color:var(--teal);}
+  .hero p.lede{font-size:17px;max-width:48ch;margin-top:20px;color:var(--ink-soft);line-height:1.6;}
+  .search-bar{margin-top:32px;display:flex;border:1.5px solid var(--ink);border-radius:100px;overflow:hidden;max-width:600px;background:var(--paper-card);box-shadow:0 10px 30px rgba(43,42,34,0.08);}
+  .search-bar input{flex:1;border:none;padding:17px 22px;font-family:'Work Sans',sans-serif;font-size:15px;background:transparent;}
+  .search-bar input:focus{outline:none;}
+  .search-bar button{border:none;background:var(--ink);color:var(--paper);font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;padding:0 30px;cursor:pointer;border-radius:100px;margin:5px;}
+  .search-bar button:hover{background:var(--teal);}
+  .market-strip{margin-top:52px;padding:22px 0;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;}
+  .market-stat{flex:1;min-width:150px;padding:0 22px;border-left:1px solid var(--line);}
+  .market-stat:first-child{border-left:none;padding-left:0;}
+  .market-stat .label{font-family:'Space Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+  .market-stat .value{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;margin-top:5px;}
+  .market-note{font-family:'Space Mono',monospace;font-size:11px;color:#9a9787;margin:12px 0 0;}
+
+  /* hub cards (home + buying/selling) */
+  .hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media (max-width:820px){.hub-grid{grid-template-columns:1fr;}}
+  .hub-card{background:var(--paper-card);border-radius:20px;padding:28px 24px;transition:transform .15s ease, box-shadow .15s ease;cursor:pointer;}
+  .hub-card:hover{transform:translateY(-3px);box-shadow:0 16px 32px rgba(43,42,34,0.1);}
+  .hub-card .ic{width:40px;height:40px;border-radius:50%;background:var(--mustard-soft);margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;}
+  .hub-card h3{font-size:17px;margin-bottom:8px;}
+  .hub-card p{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0;}
+
+  /* listings grid */
+  .listing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  @media (max-width:900px){.listing-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:620px){.listing-grid{grid-template-columns:1fr;}}
+  .listing-card{border:1px solid var(--line);border-radius:20px;background:var(--paper-card);overflow:hidden;transition:transform .15s ease, box-shadow .15s ease;cursor:pointer;}
+  .listing-card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(43,42,34,0.1);}
+  .listing-art{height:140px;display:flex;align-items:center;justify-content:center;background:var(--paper);}
+  .listing-art svg{width:76px;height:76px;}
+  .listing-art.lg{height:220px;}
+  .listing-art.lg svg{width:120px;height:120px;}
+  .listing-body{padding:20px;}
+  .listing-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;}
+  .listing-addr{font-size:14px;color:var(--ink-soft);margin-top:2px;}
+  .listing-meta{font-family:'Space Mono',monospace;font-size:11.5px;color:#9a9787;margin-top:8px;}
+  .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px;}
+  .chip{font-size:11.5px;font-family:'Space Mono',monospace;padding:5px 11px;border-radius:100px;background:var(--paper);color:var(--ink-soft);}
+  .demand-badge{margin-top:14px;display:inline-flex;align-items:center;gap:6px;font-family:'Space Mono',monospace;font-size:11.5px;padding:6px 12px;border-radius:100px;background:var(--teal);color:#fff;}
+  .demand-badge .pip{width:6px;height:6px;border-radius:50%;background:var(--mustard);}
+  .filter-row{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;}
+  .filter-row input{flex:1;min-width:220px;padding:13px 20px;border:1.5px solid var(--line);border-radius:100px;font-family:'Work Sans',sans-serif;font-size:14px;background:var(--paper-card);}
+  .filter-row input:focus{outline:none;border-color:var(--teal);}
+  .result-count{font-family:'Space Mono',monospace;font-size:12px;color:var(--ink-soft);margin-bottom:20px;}
+
+  /* detail pages */
+  .detail-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:start;}
+  @media (max-width:860px){.detail-grid{grid-template-columns:1fr;}}
+  .detail-card{border-radius:24px;background:var(--paper-card);overflow:hidden;box-shadow:0 20px 50px rgba(43,42,34,0.08);}
+  .detail-info h1{font-size:clamp(24px,3vw,32px);}
+  .detail-info .addr{color:var(--ink-soft);font-size:15px;margin-top:6px;}
+  .side-panel{background:var(--paper-card);border-radius:20px;padding:24px;box-shadow:0 12px 30px rgba(43,42,34,0.06);}
+  .side-panel h3{font-size:15.5px;margin-bottom:14px;}
+  .related-item{padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px;cursor:pointer;}
+  .related-item:last-child{border-bottom:none;}
+  .related-item:hover{color:var(--teal);}
+  .related-item .meta{font-family:'Space Mono',monospace;font-size:11px;color:#9a9787;margin-top:3px;}
+
+  /* signal / pin styling reused */
+  .pin-card{width:240px;background:var(--paper-card);border-radius:16px;padding:18px 18px 16px;box-shadow:0 10px 24px rgba(43,42,34,0.07);cursor:pointer;transition:transform .15s ease;}
+  .pin-card:hover{transform:translateY(-3px);}
+  .pin-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;}
+  .pin-label{font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-radius:100px;display:inline-block;}
+  .pin-label.want{background:var(--mustard-soft);color:var(--ink);}
+  .pin-label.check{background:var(--teal-soft);color:var(--teal);}
+  .verified{font-family:'Space Mono',monospace;font-size:10px;color:var(--teal);display:flex;align-items:center;gap:3px;white-space:nowrap;}
+  .pin-text{font-size:13.5px;line-height:1.5;}
+  .pin-meta{font-family:'Space Mono',monospace;font-size:11px;color:#9a9787;margin-top:10px;}
+  .follow-btn{margin-top:12px;width:100%;font-family:'Work Sans',sans-serif;font-weight:600;font-size:12.5px;padding:8px 0;border-radius:100px;border:1.5px solid var(--line);background:transparent;cursor:pointer;color:var(--ink-soft);}
+  .follow-btn:hover{border-color:var(--teal);color:var(--teal);}
+  .follow-btn.following{background:var(--teal-soft);border-color:var(--teal);color:var(--teal);}
+  .corkboard{display:flex;flex-wrap:wrap;gap:20px;align-content:flex-start;}
+  .board-controls{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .seg{display:flex;border:1.5px solid var(--ink);border-radius:100px;overflow:hidden;}
+  .seg button{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;padding:11px 20px;border:none;background:var(--paper-card);cursor:pointer;}
+  .seg button.active{background:var(--ink);color:var(--paper);}
+  .board-form{display:flex;gap:10px;flex:1;min-width:260px;}
+  .board-form input{flex:1;padding:12px 18px;border:1.5px solid var(--line);border-radius:100px;font-family:'Work Sans',sans-serif;font-size:14px;background:var(--paper-card);}
+  .board-form input:focus{outline:none;border-color:var(--teal);}
+  .board-hint{font-family:'Space Mono',monospace;font-size:12px;color:var(--ink-soft);margin:14px 0 26px;}
+  .board-hint button{border:none;background:none;font-family:'Space Mono',monospace;font-size:12px;color:var(--teal);text-decoration:underline;cursor:pointer;padding:0;}
+
+  /* guide */
+  .guide-tabs{display:flex;border:1.5px solid var(--ink);border-radius:100px;overflow:hidden;width:fit-content;margin-bottom:28px;}
+  .guide-tabs button{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;padding:11px 24px;border:none;background:var(--paper-card);cursor:pointer;}
+  .guide-tabs button.active{background:var(--mustard);}
+  .guide-panel{border-radius:24px;background:var(--paper-card);box-shadow:0 20px 50px rgba(43,42,34,0.1);max-width:620px;overflow:hidden;}
+  .guide-head{padding:16px 24px;border-bottom:1px solid var(--line);font-family:'Space Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;color:var(--ink-soft);}
+  .guide-body{padding:26px 24px;min-height:220px;display:flex;flex-direction:column;gap:16px;}
+  .msg-bot{background:var(--paper);border-radius:16px;border-top-left-radius:4px;padding:13px 17px;font-size:14.5px;line-height:1.5;max-width:88%;}
+  .msg-user{align-self:flex-end;background:var(--teal);color:#fff;border-radius:16px;border-bottom-right-radius:4px;padding:11px 17px;font-size:14px;max-width:80%;}
+  .options-row{display:flex;flex-wrap:wrap;gap:9px;}
+  .opt-btn{font-family:'Work Sans',sans-serif;font-weight:600;font-size:13.5px;padding:9px 16px;border:1.5px solid var(--line);border-radius:100px;background:var(--paper-card);cursor:pointer;transition:all .15s ease;}
+  .opt-btn:hover{background:var(--mustard);border-color:var(--mustard);}
+  .result-card{border:1.5px dashed var(--line);border-radius:16px;padding:16px 18px;font-size:13.5px;line-height:1.55;}
+  .guide-foot{padding:14px 24px;border-top:1px solid var(--line);text-align:right;}
+  .reset-link{font-family:'Space Mono',monospace;font-size:12px;color:var(--clay);cursor:pointer;background:none;border:none;text-decoration:underline;}
+
+  /* timeline (reused on selling + agent) */
+  .timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+  @media (max-width:820px){.timeline{grid-template-columns:1fr 1fr;}}
+  @media (max-width:520px){.timeline{grid-template-columns:1fr;}}
+  .tl-step{background:var(--paper-card);border-radius:20px;padding:26px 22px;position:relative;}
+  .tl-step .n{width:32px;height:32px;border-radius:50%;background:var(--mustard-soft);color:var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:13px;margin-bottom:16px;}
+  .tl-step h3{font-size:16.5px;margin-bottom:8px;}
+  .tl-step p{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0;}
+  @media (min-width:821px){.tl-step:not(:last-child)::after{content:"→";position:absolute;right:-24px;top:26px;font-family:'Space Grotesk',sans-serif;color:var(--ink-soft);font-size:18px;}}
+
+  /* agent page */
+  .agent-card{background:var(--paper-card);border-radius:24px;padding:36px;box-shadow:0 20px 50px rgba(43,42,34,0.08);}
+  .agent-status{display:inline-flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:12px;color:var(--clay);background:var(--clay-soft);padding:6px 14px;border-radius:100px;margin-bottom:20px;}
+  .covers-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:36px;}
+  @media (max-width:700px){.covers-grid{grid-template-columns:1fr;}}
+  .covers-grid ul{padding-left:18px;margin:8px 0 0;font-size:14px;color:var(--ink-soft);line-height:1.7;}
+
+  /* faq */
+  .faq{max-width:760px;}
+  .faq-item{border-bottom:1px solid var(--line);padding:22px 0;}
+  .faq-item:first-child{padding-top:0;}
+  .faq-q{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16.5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .faq-q .plus{font-family:'Space Mono',monospace;font-size:18px;color:var(--teal);transition:transform .2s ease;}
+  .faq-a{font-size:14.5px;color:var(--ink-soft);line-height:1.65;max-height:0;overflow:hidden;transition:max-height .25s ease, margin .25s ease;margin-top:0;}
+  .faq-item.open .faq-a{max-height:240px;margin-top:12px;}
+  .faq-item.open .plus{transform:rotate(45deg);}
+
+  footer{padding:44px 0 60px;border-top:1px solid var(--line);}
+  .foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+  .foot-links{display:flex;gap:20px;font-size:13px;color:var(--ink-soft);flex-wrap:wrap;}
+  .foot-links a{text-decoration:none;cursor:pointer;}
+  .foot-links a:hover{color:var(--ink);}
+  .foot-note{font-family:'Space Mono',monospace;font-size:11.5px;color:#9a9787;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo" onclick="go('')">Parcel<span>.</span></div>
+    <div class="nav-links" id="navLinks">
+      <a onclick="go('buy')" data-route="buy">Buy</a>
+      <a onclick="go('board')" data-route="board">Demand board</a>
+      <a onclick="go('guide')" data-route="guide">Get guided</a>
+      <a onclick="go('agent')" data-route="agent">The agent role</a>
+      <a onclick="go('faq')" data-route="faq">FAQ</a>
+    </div>
+    <a class="btn btn-sm btn-mustard" onclick="go('selling')">List — flat $1,000</a>
+  </div>
+</nav>
+
+<div id="app"></div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-row">
+      <div class="logo" onclick="go('')">Parcel<span>.</span></div>
+      <div class="foot-links">
+        <a onclick="go('buying')">Buying</a>
+        <a onclick="go('selling')">Selling</a>
+        <a onclick="go('board')">Demand board</a>
+        <a onclick="go('agent')">The agent role</a>
+        <a onclick="go('faq')">FAQ</a>
+      </div>
+    </div>
+    <div class="foot-note" style="margin-top:18px;">Parcel — a concept preview. Sample data, not a live listing feed.</div>
+  </div>
+</footer>
+
+<script>
+const FLAT_FEE = "$1,000";
+
+/* ---------------- data ---------------- */
+const LISTINGS = [
+  {id:0, addr:"142 Willow St", price:"$389,000", meta:"3 bd · 2 ba · 1,720 sqft", tags:["Owned solar, not leased","Detached workshop, 220V"], demand:"5 active signals match"},
+  {id:1, addr:"88 Oakhurst Ave", price:"$412,500", meta:"4 bd · 2.5 ba · 2,140 sqft", tags:["Mother-in-law suite","No HOA"], demand:"2 active signals match"},
+  {id:2, addr:"27 Rio Grande Way", price:"$355,000", meta:"3 bd · 2 ba · 1,540 sqft", tags:["Irrigation ditch shares","Root cellar"], demand:"6 active signals match"},
+  {id:3, addr:"510 Maple Grove Ln", price:"$468,000", meta:"4 bd · 3 ba · 2,410 sqft", tags:["Fiber confirmed on-site","EV charger installed"], demand:"3 active signals match"},
+  {id:4, addr:"19 Downtown Loop", price:"$298,000", meta:"2 bd · 1 ba · 1,180 sqft", tags:["Walkable, no highway crossing","Septic replaced 2022"], demand:"4 active signals match"},
+  {id:5, addr:"63 Cul-de-Sac Ct", price:"$441,000", meta:"3 bd · 2.5 ba · 1,980 sqft", tags:["Fenced pasture, horse-ready","Generator transfer switch"], demand:"1 active signal matches"},
+];
+let PINS = [
+  {id:0, type:'want', verified:true, text:"Well water rights included, not just a domestic-use permit — within 2 mi of Lincoln Elementary", meta:"posted by a buyer, pre-qualified", following:false},
+  {id:1, type:'check', verified:false, text:"Oakhurst Street — checking demand for a detached workshop wired for 220V", meta:"posted by an owner", following:false},
+  {id:2, type:'want', verified:true, text:"Fenced pasture for two horses, no HOA, budget under $450k", meta:"posted by a buyer, pre-qualified", following:false},
+  {id:3, type:'want', verified:false, text:"Root cellar or storm shelter already built, backup generator a plus", meta:"posted by a buyer", following:false},
+  {id:4, type:'want', verified:false, text:"Irrigation ditch shares included, south-facing kitchen windows", meta:"posted by a buyer", following:false},
+];
+let pinCounter = PINS.length;
+const exampleWants = [
+  "Well water rights included, not just a domestic-use permit",
+  "Detached workshop or shop building wired for 220V",
+  "South-facing kitchen windows for morning sun",
+  "No HOA, no covenants on outbuildings",
+  "Owned solar panels, not a leased system",
+  "Septic system inspected or replaced in the last 10 years",
+  "Fiber internet confirmed at the address, not just 'in the area'",
+  "Fenced pasture or acreage suitable for horses",
+  "Mother-in-law suite with a separate entrance",
+  "Irrigation ditch shares included with the parcel",
+  "Backup generator with an existing transfer switch",
+  "Root cellar or storm shelter already built",
+  "Flood zone X, not A or AE",
+  "Chicken coop or small livestock allowed by zoning",
+  "EV charger already installed in the garage",
+  "Wood-burning stove or fireplace insert, not gas"
+];
+const featureOptions = ["Well water rights","Detached workshop, 220V","Owned solar panels","Mother-in-law suite","Fenced horse pasture","No HOA","Root cellar / storm shelter","Fiber internet confirmed"];
+let searchQuery = "";
+
+/* ---------------- routing ---------------- */
+function go(route){ location.hash = '#/' + route; }
+function parseHash(){
+  const h = location.hash.replace(/^#\/?/, '');
+  return h.split('/').filter(Boolean);
+}
+window.addEventListener('hashchange', render);
+window.addEventListener('DOMContentLoaded', render);
+
+function render(){
+  const parts = parseHash();
+  const route = parts[0] || 'home';
+  document.querySelectorAll('.nav-links a').forEach(a=>{
+    a.classList.toggle('active', a.dataset.route === route);
+  });
+  const app = document.getElementById('app');
+  if(route === 'home') app.innerHTML = viewHome();
+  else if(route === 'buy') app.innerHTML = viewBuy();
+  else if(route === 'listing') app.innerHTML = viewListing(parseInt(parts[1]));
+  else if(route === 'board') app.innerHTML = viewBoard();
+  else if(route === 'signal') app.innerHTML = viewSignal(parseInt(parts[1]));
+  else if(route === 'guide') app.innerHTML = viewGuide(parts[1] || 'buyer');
+  else if(route === 'buying') app.innerHTML = viewBuying();
+  else if(route === 'selling') app.innerHTML = viewSelling();
+  else if(route === 'agent') app.innerHTML = viewAgent();
+  else if(route === 'faq') app.innerHTML = viewFaq();
+  else app.innerHTML = viewHome();
+  window.scrollTo(0,0);
+  afterRender(route, parts);
+}
+
+/* ---------------- house icon ---------------- */
+function houseIcon(accent, style){
+  const roofs = {
+    gable: `<polygon points="12,44 50,14 88,44" fill="${accent}" stroke="#2B2A22" stroke-width="3"/>`,
+    flat: `<rect x="14" y="30" width="72" height="10" fill="${accent}" stroke="#2B2A22" stroke-width="3"/>`,
+    dormer: `<polygon points="12,44 50,18 88,44" fill="${accent}" stroke="#2B2A22" stroke-width="3"/><rect x="42" y="24" width="16" height="14" fill="#FFFFFF" stroke="#2B2A22" stroke-width="2.5"/>`
+  };
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${roofs[style]}
+    <rect x="18" y="44" width="64" height="42" rx="3" fill="#FFFFFF" stroke="#2B2A22" stroke-width="3"/>
+    <rect x="44" y="62" width="14" height="24" fill="${accent}" stroke="#2B2A22" stroke-width="2.5"/>
+    <rect x="26" y="54" width="12" height="12" fill="${accent}" stroke="#2B2A22" stroke-width="2.5"/>
+    <rect x="64" y="54" width="12" height="12" fill="${accent}" stroke="#2B2A22" stroke-width="2.5"/></svg>`;
+}
+const accents = ["#E3A23C","#22615A","#C1523F"];
+const roofStyles = ["gable","flat","dormer"];
+
+function listingCard(l, i, big){
+  return `<div class="listing-card" onclick="go('listing/${l.id}')">
+    <div class="listing-art${big?' lg':''}">${houseIcon(accents[i%3], roofStyles[i%3])}</div>
+    <div class="listing-body">
+      <div class="listing-price">${l.price}</div>
+      <div class="listing-addr">${l.addr}</div>
+      <div class="listing-meta">${l.meta}</div>
+      <div class="tag-row">${l.tags.map(t=>`<span class="chip">${t}</span>`).join('')}</div>
+      <div class="demand-badge"><span class="pip"></span>${l.demand}</div>
+    </div>
+  </div>`;
+}
+function pinCard(p){
+  return `<div class="pin-card" onclick="go('signal/${p.id}')">
+    <div class="pin-top">
+      <span class="pin-label ${p.type}">${p.type==='want' ? 'Buyer wants' : 'Owner checked'}</span>
+      ${p.verified ? '<span class="verified">✓ verified</span>' : ''}
+    </div>
+    <div class="pin-text">${p.text}</div>
+    <div class="pin-meta">${p.meta}</div>
+  </div>`;
+}
+
+/* ---------------- HOME ---------------- */
+function viewHome(){
+  return `
+  <header class="hero">
+    <div class="blob blob-mustard blob-hero-1"></div>
+    <div class="blob blob-teal blob-hero-2"></div>
+    <div class="wrap">
+      <div class="hero-inner">
+        <span class="eyebrow">A different way to buy and sell</span>
+        <h1>Find what people <em>actually</em> want.</h1>
+        <p class="lede">Parcel shows real demand for the specific things regular listing sites don't let you search for, before you list, before you offer. When you're ready, a licensed partner closes it for a flat ${FLAT_FEE}.</p>
+        <div class="search-bar">
+          <input id="homeSearch" type="text" placeholder="Try “well water rights” or a street name" />
+          <button onclick="searchQuery=document.getElementById('homeSearch').value; go('buy')">Search</button>
+        </div>
+      </div>
+      <div class="market-strip">
+        <div class="market-stat"><div class="label">Alamosa County, CO</div><div class="value">$342,000</div></div>
+        <div class="market-stat"><div class="label">Median days on market</div><div class="value">41 days</div></div>
+        <div class="market-stat"><div class="label">30-yr mortgage rate</div><div class="value">6.42%</div></div>
+      </div>
+      <div class="market-note">Preview snapshot — connects to a live market feed at launch.</div>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head"><span class="tag">Start here</span><h2>Buying, or selling?</h2></div>
+      <div class="hub-grid">
+        <div class="hub-card" onclick="go('buying')"><div class="ic">B</div><h3>I'm buying</h3><p>Search listings, pin exactly what you want, get guided to a match.</p></div>
+        <div class="hub-card" onclick="go('selling')"><div class="ic">S</div><h3>I'm selling</h3><p>Check real demand for your home before you decide anything.</p></div>
+        <div class="hub-card" onclick="go('board')"><div class="ic">D</div><h3>Demand board</h3><p>Browse everything people are looking for, out in the open.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="tag">For sale</span><h2>A few homes on the market</h2>
+        <p>Every listing shows how much active demand it's already getting.</p>
+        <div class="preview-flag">Preview listings, not a live feed yet</div>
+      </div>
+      <div class="listing-grid">${LISTINGS.slice(0,3).map((l,i)=>listingCard(l,i)).join('')}</div>
+      <p style="margin-top:28px;"><a class="btn btn-outline btn-sm" onclick="go('buy')" style="cursor:pointer;">See all listings →</a></p>
+    </div>
+  </section>
+  `;
+}
+
+/* ---------------- BUY (search results) ---------------- */
+function viewBuy(){
+  return `
+  <section>
+    <div class="wrap">
+      <div class="section-head"><span class="tag">For sale</span><h1>Search homes on the market</h1><p>Filter by street, feature, or anything in the tags.</p></div>
+      <div class="filter-row"><input id="buyFilter" type="text" placeholder="e.g. well water, no HOA, Willow St" value="${searchQuery.replace(/"/g,'')}"/></div>
+      <div class="result-count" id="buyCount"></div>
+      <div class="listing-grid" id="buyGrid"></div>
+    </div>
+  </section>`;
+}
+function renderBuyResults(){
+  const q = (document.getElementById('buyFilter').value || '').toLowerCase();
+  const results = LISTINGS.filter(l => !q || l.addr.toLowerCase().includes(q) || l.tags.join(' ').toLowerCase().includes(q));
+  document.getElementById('buyCount').textContent = `${results.length} listing${results.length!==1?'s':''}${q ? ' matching “'+q+'”' : ''}`;
+  document.getElementById('buyGrid').innerHTML = results.map((l,i)=>listingCard(l,i)).join('') || `<p class="mono" style="color:var(--ink-soft);">No listings match that yet — try posting it to the <a onclick="go('board')" style="color:var(--teal);cursor:pointer;">demand board</a> instead.</p>`;
+}
+
+/* ---------------- LISTING DETAIL ---------------- */
+function viewListing(id){
+  const l = LISTINGS.find(x=>x.id===id);
+  if(!l) return `<section><div class="wrap"><p>Listing not found. <a onclick="go('buy')" style="cursor:pointer;color:var(--teal);">Back to search</a></p></div></section>`;
+  const related = PINS.filter(p => l.tags.some(t => p.text.toLowerCase().includes(t.toLowerCase().split(',')[0].split(' ')[0]))).slice(0,3);
+  return `
+  <section>
+    <div class="wrap">
+      <a class="crumb" onclick="go('buy')">← Back to search</a>
+      <div class="detail-grid">
+        <div>
+          <div class="detail-card">
+            <div class="listing-art lg">${houseIcon(accents[l.id%3], roofStyles[l.id%3])}</div>
+          </div>
+          <div class="detail-info" style="margin-top:24px;">
+            <h1>${l.price}</h1>
+            <div class="addr">${l.addr} · ${l.meta}</div>
+            <div class="tag-row" style="margin-top:16px;">${l.tags.map(t=>`<span class="chip">${t}</span>`).join('')}</div>
+            <div class="demand-badge" style="margin-top:16px;"><span class="pip"></span>${l.demand}</div>
+            <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;">
+              <a class="btn btn-teal" onclick="go('guide/buyer')" style="cursor:pointer;">Get guided on this one</a>
+              <a class="btn btn-outline" onclick="go('board')" style="cursor:pointer;">See the demand board</a>
+            </div>
+          </div>
+        </div>
+        <div class="side-panel">
+          <h3>Matching demand signals</h3>
+          ${related.length ? related.map(p=>`<div class="related-item" onclick="go('signal/${p.id}')"><div>${p.text}</div><div class="meta">${p.meta}</div></div>`).join('') : '<p style="font-size:13.5px;color:var(--ink-soft);">No pinned signals overlap with this one yet.</p>'}
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ---------------- BOARD ---------------- */
+let boardMode = 'want';
+function viewBoard(){
+  return `
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="tag">Demand board</span><h1>What people want, pinned in the open.</h1>
+        <p>Buyers pin the specific stuff that never shows up as a filter on a normal listing site. Owners check whether their place already matches real demand.</p>
+      </div>
+      <div class="board-controls">
+        <div class="seg">
+          <button id="segWant" class="active" onclick="setBoardMode('want')">I'm looking for a home</button>
+          <button id="segCheck" onclick="setBoardMode('check')">I own a home</button>
+        </div>
+        <div class="board-form">
+          <input id="boardInput" type="text" placeholder="e.g. well water rights, not just a domestic-use permit" />
+          <button class="btn btn-sm btn-teal" onclick="submitPin()">Pin it</button>
+        </div>
+      </div>
+      <div class="board-hint">Not sure what to pin? <button onclick="fillExample()">Try an example</button></div>
+      <div class="corkboard" id="corkboard"></div>
+    </div>
+  </section>`;
+}
+function setBoardMode(m){
+  boardMode = m;
+  document.getElementById('segWant').classList.toggle('active', m==='want');
+  document.getElementById('segCheck').classList.toggle('active', m==='check');
+  document.getElementById('boardInput').placeholder = m==='want'
+    ? "e.g. well water rights, not just a domestic-use permit"
+    : "Your street or neighborhood, e.g. Willow St";
+}
+function fillExample(){
+  document.getElementById('boardInput').value = exampleWants[Math.floor(Math.random()*exampleWants.length)];
+}
+function submitPin(){
+  const input = document.getElementById('boardInput');
+  const text = input.value.trim();
+  if(!text) return;
+  if(boardMode === 'want'){
+    PINS.unshift({id:pinCounter++, type:'want', verified:false, text, meta:"posted by a buyer, just now", following:false});
+  } else {
+    const matches = Math.floor(Math.random()*6)+1;
+    PINS.unshift({id:pinCounter++, type:'check', verified:false, text:`${text} — ${matches} active buyer signal${matches>1?'s':''} match nearby`, meta:"posted by an owner, just now", following:false});
+  }
+  input.value = '';
+  renderCorkboard();
+}
+function renderCorkboard(){
+  const board = document.getElementById('corkboard');
+  if(!board) return;
+  board.innerHTML = PINS.map(pinCard).join('');
+}
+
+/* ---------------- SIGNAL DETAIL ---------------- */
+function viewSignal(id){
+  const p = PINS.find(x=>x.id===id);
+  if(!p) return `<section><div class="wrap"><p>Signal not found. <a onclick="go('board')" style="cursor:pointer;color:var(--teal);">Back to board</a></p></div></section>`;
+  const words = p.text.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>4);
+  const related = LISTINGS.filter(l => words.some(w => l.tags.join(' ').toLowerCase().includes(w))).slice(0,3);
+  return `
+  <section>
+    <div class="wrap">
+      <a class="crumb" onclick="go('board')">← Back to demand board</a>
+      <div class="detail-grid">
+        <div class="agent-card" style="padding:32px;">
+          <div class="pin-top">
+            <span class="pin-label ${p.type}">${p.type==='want' ? 'Buyer wants' : 'Owner checked'}</span>
+            ${p.verified ? '<span class="verified">✓ verified</span>' : ''}
+          </div>
+          <h1 style="font-size:22px;margin-top:14px;line-height:1.4;">${p.text}</h1>
+          <div class="mono" style="font-size:12px;color:var(--ink-soft);margin-top:14px;">${p.meta}</div>
+          <button id="followBtn" class="follow-btn" style="margin-top:24px;max-width:220px;">${p.following ? 'Following ✓' : 'Follow this signal'}</button>
+          <div style="margin-top:20px;">
+            <a class="btn btn-teal btn-sm" onclick="go('guide/${p.type==='want'?'buyer':'seller'}')" style="cursor:pointer;">Talk to the guide about this</a>
+          </div>
+        </div>
+        <div class="side-panel">
+          <h3>Listings this could match</h3>
+          ${related.length ? related.map(l=>`<div class="related-item" onclick="go('listing/${l.id}')"><div>${l.addr} — ${l.price}</div><div class="meta">${l.tags.join(' · ')}</div></div>`).join('') : '<p style="font-size:13.5px;color:var(--ink-soft);">Nothing listed matches this exactly yet.</p>'}
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ---------------- GUIDE ---------------- */
+let guideMode = 'buyer';
+function viewGuide(mode){
+  guideMode = mode === 'seller' ? 'seller' : 'buyer';
+  return `
+  <section>
+    <div class="wrap">
+      <div class="section-head"><span class="tag">Get guided</span><h1>Answer a few questions, get a real answer.</h1><p>Pulls from current listings and the demand board. No forms, no account required.</p></div>
+      <div class="guide-tabs">
+        <button id="tabBuyer" class="${guideMode==='buyer'?'active':''}" onclick="go('guide/buyer')">I'm buying</button>
+        <button id="tabSeller" class="${guideMode==='seller'?'active':''}" onclick="go('guide/seller')">I'm selling</button>
+      </div>
+      <div class="guide-panel">
+        <div class="guide-head"><span>Parcel guide</span><span>${guideMode} mode</span></div>
+        <div class="guide-body" id="guideBody"></div>
+        <div class="guide-foot"><button class="reset-link" onclick="startGuide()">start over</button></div>
+      </div>
+    </div>
+  </section>`;
+}
+function sampleFeatures(n){
+  const pool = [...featureOptions]; const picked = [];
+  while(picked.length < n && pool.length){ picked.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); }
+  return picked;
+}
+function addBotMsg(html){
+  const gb = document.getElementById('guideBody');
+  const d = document.createElement('div'); d.className='msg-bot'; d.innerHTML=html;
+  gb.appendChild(d); gb.scrollTop = gb.scrollHeight;
+}
+function addUserMsg(text){
+  const gb = document.getElementById('guideBody');
+  const d = document.createElement('div'); d.className='msg-user'; d.textContent=text;
+  gb.appendChild(d);
+}
+function addOptions(options, onPick){
+  const gb = document.getElementById('guideBody');
+  const row = document.createElement('div'); row.className='options-row';
+  options.forEach(opt=>{
+    const b = document.createElement('button'); b.className='opt-btn'; b.textContent=opt;
+    b.onclick = () => { row.remove(); addUserMsg(opt); onPick(opt); };
+    row.appendChild(b);
+  });
+  gb.appendChild(row);
+}
+function startGuide(){
+  const gb = document.getElementById('guideBody');
+  if(!gb) return;
+  gb.innerHTML = '';
+  if(guideMode === 'buyer'){
+    addBotMsg("What matters most in your next home? Pick the thing most sites won't let you search for.");
+    addOptions(sampleFeatures(4), feature => {
+      addBotMsg("Got it. What about the area?");
+      addOptions(["Near a school","Walkable downtown","Quiet cul-de-sac","Doesn't matter"], area => {
+        const match = LISTINGS.find(l => l.tags.some(t => t.toLowerCase().includes(feature.toLowerCase().split(',')[0]))) || LISTINGS[Math.floor(Math.random()*LISTINGS.length)];
+        addBotMsg("Checking current listings and the demand board for that combination:");
+        const rc = document.createElement('div'); rc.className='result-card';
+        rc.innerHTML = `<strong>${match.addr}</strong> — ${match.price}<br>${match.meta}<br>${match.tags.join(' · ')}`;
+        gb.appendChild(rc);
+        addOptions(["See this listing","Pin this search to the demand board"], choice=>{
+          if(choice === "See this listing"){ go('listing/'+match.id); }
+          else {
+            PINS.unshift({id:pinCounter++, type:'want', verified:false, text:`${feature}, ${area.toLowerCase()}`, meta:"posted by a buyer, just now", following:false});
+            addBotMsg("Pinned. You'll show up as active demand for anyone checking their home nearby.");
+          }
+        });
+      });
+    });
+  } else {
+    addBotMsg("What's the strongest feature of your home — the kind of thing that wouldn't show up in a normal listing search?");
+    addOptions(sampleFeatures(4), feature => {
+      addBotMsg("And roughly where is it?");
+      addOptions(["Near a school","Walkable downtown","Quiet cul-de-sac","Other"], area => {
+        const count = Math.floor(Math.random()*6)+1;
+        addBotMsg(`Checking the demand board for "${feature.toLowerCase()}" ${area.toLowerCase()}…`);
+        const rc = document.createElement('div'); rc.className='result-card';
+        rc.innerHTML = `<strong>${count} active buyer signal${count>1?'s':''}</strong> currently match a home like yours.`;
+        gb.appendChild(rc);
+        addOptions(["See who's looking","List my home"], choice=>{
+          if(choice === "See who's looking"){
+            const sample = PINS.filter(p=>p.type==='want').slice(0,2);
+            sample.forEach(s => addBotMsg(s.text));
+            if(sample.length === 0) addBotMsg("No open buyer pins match yet — check back soon.");
+          } else {
+            addBotMsg(`Got it — listing here is a flat ${FLAT_FEE} to close, no matter the sale price. Here's <a onclick="go('agent')" style="color:var(--teal);cursor:pointer;">how the licensed side works</a>.`);
+          }
+        });
+      });
+    });
+  }
+}
+
+/* ---------------- BUYING / SELLING hubs ---------------- */
+function viewBuying(){
+  return `
+  <section>
+    <div class="wrap">
+      <div class="section-head"><span class="tag">Buying</span><h1>Ready to find your next place?</h1><p>Three ways in, pick whichever fits how you already think about it.</p></div>
+      <div class="hub-grid">
+        <div class="hub-card" onclick="go('buy')"><div class="ic">1</div><h3>Search what's listed</h3><p>Browse homes currently for sale, filtered by the specific things you actually care about.</p></div>
+        <div class="hub-card" onclick="go('board')"><div class="ic">2</div><h3>Pin what you want</h3><p>Nothing listed fits yet? Post it publicly so owners can see there's real demand for it.</p></div>
+        <div class="hub-card" onclick="go('guide/buyer')"><div class="ic">3</div><h3>Get guided</h3><p>Answer a few quick questions and get a specific match, no browsing required.</p></div>
+      </div>
+    </div>
+  </section>`;
+}
+function viewSelling(){
+  return `
+  <section>
+    <div class="wrap">
+      <div class="section-head"><span class="tag">Selling</span><h1>Curious what your home is worth to someone?</h1><p>You don't have to list anything to find out. Checking demand is free and doesn't commit you to selling.</p></div>
+      <div class="hub-grid">
+        <div class="hub-card" onclick="go('board')"><div class="ic">1</div><h3>Check demand</h3><p>See how many active buyer signals already match your home's features and street.</p></div>
+        <div class="hub-card" onclick="go('guide/seller')"><div class="ic">2</div><h3>Get guided</h3><p>Answer a few questions and get a real demand count back immediately.</p></div>
+        <div class="hub-card" onclick="go('agent')"><div class="ic">3</div><h3>See how closing works</h3><p>When you're ready to actually sell, here's exactly who handles the legal side.</p></div>
+      </div>
+    </div>
+  </section>
+  <section style="padding-top:0;">
+    <div class="wrap">
+      <div class="section-head"><span class="tag">The fee</span><h2>One flat ${FLAT_FEE}, not a percentage.</h2><p>Software handles the matching and negotiation prep. A licensed partner only has to handle the part that legally requires them.</p></div>
+      <div class="timeline">
+        <div class="tl-step"><div class="n">1</div><h3>Pinned</h3><p>You check demand, or a buyer's signal already matches your home.</p></div>
+        <div class="tl-step"><div class="n">2</div><h3>Matched</h3><p>Parcel lines up the demand against your home automatically.</p></div>
+        <div class="tl-step"><div class="n">3</div><h3>Introduced</h3><p>You see the match and what similar homes nearby actually sold for.</p></div>
+        <div class="tl-step"><div class="n">4</div><h3>Closed</h3><p>A licensed partner handles the contract, disclosures, and closing for a flat ${FLAT_FEE}.</p></div>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ---------------- AGENT (licensed / MLS role) ---------------- */
+function viewAgent(){
+  return `
+  <section>
+    <div class="wrap">
+      <div class="section-head"><span class="tag">The licensed side</span><h1>Every closing goes through a real, licensed professional.</h1><p>Parcel isn't a brokerage. It's software that does everything up to the point where a license is legally required — matching, market comps, and negotiation prep. The transaction itself is still handled by a real person.</p></div>
+      <div class="agent-card">
+        <div class="agent-status">● Actively looking for our first licensed partner</div>
+        <h2 style="font-size:22px;">What the role covers</h2>
+        <div class="covers-grid">
+          <div>
+            <h3 class="mono" style="font-size:13px;color:var(--teal);text-transform:uppercase;letter-spacing:.05em;">On every transaction</h3>
+            <ul>
+              <li>MLS access and listing entry once a home is ready to formally list</li>
+              <li>Contract review and disclosures</li>
+              <li>Representation through closing, as agent or broker of record</li>
+              <li>Final sign-off on negotiation terms before anything is signed</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="mono" style="font-size:13px;color:var(--teal);text-transform:uppercase;letter-spacing:.05em;">What Parcel brings the partner</h3>
+            <ul>
+              <li>Warm matches, not cold leads — demand is already validated before a file reaches them</li>
+              <li>Comps and negotiation prep handled before they're looped in</li>
+              <li>A flat ${FLAT_FEE} per transaction instead of chasing bigger listings for a bigger cut</li>
+              <li>An equity stake in Parcel itself, not just a commission</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin-top:32px;font-size:14px;color:var(--ink-soft);line-height:1.6;">If you're a licensed agent or broker and this sounds interesting, this page is really for you — the pitch is short: bring your license, take equity, work warm matches instead of cold ones.</p>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ---------------- FAQ ---------------- */
+const faqs = [
+  {q:"Is this actually legal?", a:"The demand board is just people sharing what they're looking for — nothing about that requires a license. The sale itself still goes through a licensed real estate professional; Parcel doesn't skip that step, it just speeds up everything that happens before it."},
+  {q:"How can the fee be a flat $1,000 instead of a percentage?", a:"Most of a traditional commission pays for finding a match and negotiating it. Parcel handles that part with software and the demand board, so the flat fee only has to cover the part that legally requires a person: contracts, disclosures, and closing."},
+  {q:"What if nobody's posted anything near my house yet?", a:"Then you're early. Checking demand costs nothing, and being the first pin on your street just means you'll see interest the moment it shows up."},
+  {q:"Do I need to already have an agent to use this?", a:"No. Parcel works before you've chosen anyone. Once you're ready to move on an actual offer, a licensed partner steps in for the transaction itself."},
+  {q:"Is any of this real data right now?", a:"Not yet — listings and market numbers on this preview are samples. The demand board interactions are fully functional, everything else connects to real data once a licensed partner and a data source are in place."}
+];
+function viewFaq(){
+  return `
+  <section>
+    <div class="wrap">
+      <div class="section-head"><span class="tag">Questions</span><h1>Things people ask first.</h1></div>
+      <div class="faq" id="faqList"></div>
+    </div>
+  </section>`;
+}
+function renderFaq(){
+  const faqList = document.getElementById('faqList');
+  if(!faqList) return;
+  faqList.innerHTML = faqs.map(f => `<div class="faq-item"><div class="faq-q">${f.q}<span class="plus">+</span></div><div class="faq-a">${f.a}</div></div>`).join('');
+  faqList.querySelectorAll('.faq-item').forEach(item=>{
+    item.querySelector('.faq-q').addEventListener('click', ()=> item.classList.toggle('open'));
+  });
+}
+
+/* ---------------- post-render wiring ---------------- */
+function afterRender(route, parts){
+  if(route === 'buy'){
+    renderBuyResults();
+    document.getElementById('buyFilter').addEventListener('input', renderBuyResults);
+  }
+  if(route === 'board'){
+    renderCorkboard();
+    document.getElementById('boardInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitPin(); });
+  }
+  if(route === 'signal'){
+    const btn = document.getElementById('followBtn');
+    if(btn){
+      btn.addEventListener('click', ()=>{
+        const p = PINS.find(x=>x.id===parseInt(parts[1]));
+        if(!p) return;
+        p.following = !p.following;
+        btn.textContent = p.following ? 'Following ✓' : 'Follow this signal';
+        btn.classList.toggle('following', p.following);
+      });
+    }
+  }
+  if(route === 'guide') startGuide();
+  if(route === 'faq') renderFaq();
+}
+</script>
+</body>
+</html>
