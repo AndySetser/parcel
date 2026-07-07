@@ -1,0 +1,101 @@
+name: Update market snapshot
+
+# Pulls from multiple free, public sources and combines them into data.json,
+# each field tagged with where it actually came from. This is the same basic
+# approach Zillow's Zestimate uses under the hood: not a live MLS feed, but
+# public tax-assessor/recorder records plus comparable sales, modeled.
+# We don't have the comps model, but public records data gets us close.
+#
+# Sources used here, in order of confidence:
+#   1. FRED (Federal Reserve) — 30-year mortgage rate. Verified reliable, well-documented, free.
+#   2. Census ACS 5-Year Estimates — median home value by county (table B25077).
+#      This is genuinely public-record-based, same spirit as a Zestimate, just
+#      without the comps/ML layer. Verified endpoint pattern, free, optional API key.
+#   3. Zillow Research (optional, commented out below) — closest thing to a real
+#      Zestimate-style index, but the exact CSV path changes periodically, so
+#      it needs a human to grab the current URL from zillow.com/research/data
+#      before it's reliable enough to automate.
+#
+# Setup:
+#   - Free FRED key: https://fred.stlouisfed.org/docs/api/api_key.html
+#   - Free Census key (optional, raises rate limits): https://api.census.gov/data/key_signup.html
+#   - Add both as repo secrets: Settings > Secrets and variables > Actions
+#     Names: FRED_API_KEY, CENSUS_API_KEY (Census key can be left blank)
+#   - COUNTY_FIPS below defaults to Alamosa County, CO (state 08, county 003).
+#     Look up a different county's FIPS code at https://www.census.gov/library/reference/code-lists/ansi.html
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # weekly, Monday 6am Mountain (13:00 UTC)
+  workflow_dispatch: {}
+
+jobs:
+  update-market-data:
+    runs-on: ubuntu-latest
+    env:
+      STATE_FIPS: "08"
+      COUNTY_FIPS: "003"
+      REGION_NAME: "Alamosa County, CO"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch mortgage rate from FRED
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=MORTGAGE30US&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=1" \
+            -o fred_raw.json
+          cat fred_raw.json
+
+      - name: Fetch median home value from Census ACS
+        env:
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+        run: |
+          KEY_PARAM=""
+          if [ -n "$CENSUS_API_KEY" ]; then KEY_PARAM="&key=${CENSUS_API_KEY}"; fi
+          curl -s "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25077_001E&for=county:${COUNTY_FIPS}&in=state:${STATE_FIPS}${KEY_PARAM}" \
+            -o census_raw.json
+          cat census_raw.json
+
+      # -------------------------------------------------------------
+      # OPTIONAL upgrade — once you have the current Zillow CSV URL for
+      # this county from https://www.zillow.com/research/data/ (ZHVI,
+      # county geography), this gets you closer to an actual Zestimate-
+      # style modeled value instead of the Census assessor-based figure.
+      # - name: Fetch ZHVI from Zillow Research
+      #   run: |
+      #     curl -sL "PASTE_CURRENT_ZILLOW_CSV_URL_HERE" -o zhvi.csv
+      #     # parse the row for this county, most recent month column
+      # -------------------------------------------------------------
+
+      - name: Build data.json
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq
+          RATE=$(jq -r '.observations[0].value' fred_raw.json)
+          # Census returns [["NAME","B25077_001E","state","county"], ["Alamosa County, Colorado","230100","08","003"]]
+          HOME_VALUE=$(jq -r '.[1][1]' census_raw.json)
+          jq -n \
+            --arg updated "$(date +%F)" \
+            --arg region "$REGION_NAME" \
+            --argjson rate "$RATE" \
+            --argjson value "$HOME_VALUE" \
+            '{
+              updated: $updated,
+              region: $region,
+              median_list_price: $value,
+              median_list_price_source: "Census ACS 5-Year (B25077) — assessor-based typical value, not a live listing price",
+              median_days_on_market: 41,
+              median_days_on_market_source: "sample — no free source found yet",
+              mortgage_rate_30yr: $rate,
+              mortgage_rate_30yr_source: "FRED (live)",
+              source: "Census ACS + FRED, combined"
+            }' > data.json
+          cat data.json
+
+      - name: Commit updated data
+        run: |
+          git config user.name "parcel-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data.json
+          git diff --quiet --cached || git commit -m "Auto-update market snapshot"
+          git push
