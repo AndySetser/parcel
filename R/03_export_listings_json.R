@@ -41,9 +41,14 @@ listings <- properties %>%
     id     = row_number() - 1,
     price  = sapply(last_sale_price, format_price),
     meta   = mapply(format_meta, bedrooms, bathrooms, sqft),
-    tags   = I(lapply(property_type, function(t) {
-      if (is.na(t) || t == "") list() else list(t)
-    })),
+    tags   = mapply(function(t, extra) {
+      base <- if (!is.na(t) && t != "") list(t) else list()
+      if (!is.na(extra) && extra != "") {
+        extra_list <- strsplit(extra, "; ")[[1]]
+        base <- c(base, as.list(extra_list))
+      }
+      if (length(base) == 0) list("Details limited for this county") else base
+    }, property_type, extra_features, SIMPLIFY = FALSE),
     status = "known_property"   # explicitly NOT "for_sale" — see note above
   ) %>%
   select(id, addr = address, price, meta, tags, status,
