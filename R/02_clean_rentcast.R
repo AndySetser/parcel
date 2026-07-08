@@ -25,23 +25,59 @@ parse_one <- function(path) {
   raw <- tryCatch(fromJSON(path, flatten = TRUE), error = function(e) NULL)
   if (is.null(raw)) return(NULL)
 
-  # RentCast's /properties endpoint returns a list; adjust field names below
-  # once you've seen a real response — this is a reasonable starting shape.
-  tibble::tibble(
-    address       = raw$formattedAddress %||% NA_character_,
-    city          = raw$city %||% NA_character_,
-    state         = raw$state %||% NA_character_,
-    zip           = raw$zipCode %||% NA_character_,
-    bedrooms      = raw$bedrooms %||% NA_real_,
-    bathrooms     = raw$bathrooms %||% NA_real_,
-    sqft          = raw$squareFootage %||% NA_real_,
-    lot_sqft      = raw$lotSize %||% NA_real_,
-    year_built    = raw$yearBuilt %||% NA_real_,
-    last_sale_price = raw$lastSalePrice %||% NA_real_,
-    last_sale_date  = raw$lastSaleDate %||% NA_character_,
-    property_type   = raw$propertyType %||% NA_character_,
+  # RentCast's /v1/properties endpoint returns an ARRAY of matching records,
+  # even for a single address search — take the first (best) match.
+  # flatten=TRUE turns nested objects like features.garage, features.pool,
+  # features.coolingType etc into their own flat columns automatically —
+  # so we don't have to guess every possible feature name in advance.
+  # Verified endpoint/base fields against https://developers.rentcast.io/reference/property-records
+  if (is.data.frame(raw)) {
+    if (nrow(raw) == 0) return(NULL)
+    raw <- raw[1, ]
+  } else if (is.list(raw) && !is.null(raw[[1]]) && is.list(raw[[1]])) {
+    raw <- as.data.frame(raw[[1]], stringsAsFactors = FALSE)
+  }
+
+  get_col <- function(name) if (name %in% names(raw)) raw[[name]][1] else NA
+
+  core <- tibble::tibble(
+    address         = get_col("formattedAddress"),
+    city            = get_col("city"),
+    state           = get_col("state"),
+    zip             = get_col("zipCode"),
+    bedrooms        = get_col("bedrooms"),
+    bathrooms       = get_col("bathrooms"),
+    sqft            = get_col("squareFootage"),
+    lot_sqft        = get_col("lotSize"),
+    year_built      = get_col("yearBuilt"),
+    last_sale_price = get_col("lastSalePrice"),
+    last_sale_date  = get_col("lastSaleDate"),
+    property_type   = get_col("propertyType"),
     source_file     = basename(path)
   )
+
+  # Catch-all: grab EVERY flattened column whose name starts with "features."
+  # (or contains water/well, since well-water availability is spotty and
+  # sometimes appears outside a features.* namespace depending on county)
+  # so nothing available gets silently dropped, even if RentCast's exact
+  # naming differs from what we expected.
+  feature_cols <- grep("^features\\.|water|well", names(raw),
+                        ignore.case = TRUE, value = TRUE)
+
+  if (length(feature_cols) > 0) {
+    vals <- sapply(feature_cols, function(cn) raw[[cn]][1])
+    present <- !is.na(vals) & vals != "" & vals != "FALSE"
+    core$extra_features <- if (any(present)) {
+      paste(paste0(gsub("^features\\.", "", feature_cols[present]), ": ",
+                    vals[present]), collapse = "; ")
+    } else {
+      NA_character_
+    }
+  } else {
+    core$extra_features <- NA_character_
+  }
+
+  core
 }
 
 `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
